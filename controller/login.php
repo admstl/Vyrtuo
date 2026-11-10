@@ -1,9 +1,9 @@
 <?php
 session_start();
-require 'models/db.php';
+require __DIR__ . '/../model/db.php';
 
 if (isset($_SESSION['user'])) {
-    header('Location: index.php');
+    header('Location: ../index.php');
     exit;
 }
 
@@ -22,11 +22,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'username' => $user['username'],
             'role'     => $user['role_id'],   // ADM ou USR
         ];
-        header('Location: index.php');
+        header('Location: ../index.php');
         exit;
     }
 
     $error = 'Identifiant ou mot de passe incorrect.';
 }
 
-require 'views/login_view.php';
+require __DIR__ . '/../view/login_view.php';
