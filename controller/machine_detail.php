@@ -12,7 +12,17 @@ if (!$machine) {
     exit;
 }
 
-$disks = getDisksByMachine($pdo, (int)$id);
+// ... (le reste du contrôleur)
+// --- NOUVEAU : On récupère toutes les vraies données liées ! ---
+$disks      = getDisksByMachine($pdo, (int)$id);
+$networks   = getNetworkAdaptersByMachine($pdo, (int)$id);
+$softwares  = getSoftwareByMachine($pdo, (int)$id);
+$ramModules = getRamModulesByMachine($pdo, (int)$id); // Ajout pour la RAM
+
+// Configuration pour le header
+// ...
+
+
 
 // Configuration pour le header
 $page_title = 'VYRTUO - Détail de la machine';

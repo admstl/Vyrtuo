@@ -44,13 +44,15 @@ require __DIR__ . '/layout/header.php';
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <!-- Système -->
+<!-- Système & CPU -->
         <div class="p-8 bg-white border border-gray-200 rounded-2xl shadow-sm">
             <h3 class="text-sm font-bold uppercase tracking-wider mb-6">Système</h3>
             <ul class="space-y-4 text-sm">
-                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">OS</span> <span class="font-medium mt-1"><?= htmlspecialchars($machine['os']) ?></span></li>
-                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">CPU</span> <span class="font-medium mt-1"><?= htmlspecialchars($machine['cpu']) ?></span></li>
-                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">RAM</span> <span class="font-medium mt-1"><?= round($machine['ram_mb'] / 1024) ?> Go</span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">OS</span> <span class="font-medium mt-1"><?= htmlspecialchars($machine['os']) ?> <?= htmlspecialchars($machine['os_version'] ?? '') ?> (Build <?= htmlspecialchars($machine['os_build'] ?? '') ?>)</span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Architecture</span> <span class="font-medium mt-1"><?= htmlspecialchars($machine['architecture'] ?? '-') ?></span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">CPU</span> <span class="font-medium mt-1"><?= htmlspecialchars($machine['cpu']) ?> (<?= $machine['cpu_cores'] ?? '?' ?> coeurs)</span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">RAM totale</span> <span class="font-medium mt-1"><?= $machine['ram_mb'] ? round($machine['ram_mb'] / 1024) : 0 ?> Go</span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Dernier inventaire</span> <span class="font-medium mt-1"><?= $machine['last_seen'] ? date('d/m/Y H:i', strtotime($machine['last_seen'])) : '-' ?></span></li>
             </ul>
         </div>
 

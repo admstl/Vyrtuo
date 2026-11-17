@@ -26,9 +26,7 @@ try {
         ]
     );
 } catch (PDOException $e) {
-    // Décommente la ligne suivante le temps du debug pour voir la vraie erreur :
     die('Erreur BDD : ' . $e->getMessage());
-    //die('Connexion à la base de données impossible.');
 }
 
 // ---------- Utilisateurs ----------
@@ -48,8 +46,14 @@ function createUser(PDO $pdo, string $username, string $password, string $roleId
 // ---------- Machines ----------
 function getMachines(PDO $pdo, array $filters = [])
 {
-    $sql = 'SELECT m.id, m.hostname, m.ip, m.os, m.cpu, m.ram_mb,
+    // Adaptation à la BDD : 
+    // - os_name -> os
+    // - cpu_name -> cpu
+    // - ram_total_gb multiplié par 1024 -> ram_mb
+    // - Récupération de la première adresse IP depuis network_adapters
+    $sql = 'SELECT m.id, m.hostname, m.os_name AS os, m.cpu_name AS cpu, (m.ram_total_gb * 1024) AS ram_mb,
                    g.name AS groupe,
+                   (SELECT ipv4_address FROM network_adapters WHERE machine_id = m.id LIMIT 1) AS ip,
                    (m.last_seen > NOW() - INTERVAL 10 MINUTE) AS en_ligne
             FROM machines m
             LEFT JOIN machine_groups g ON g.id = m.group_id
@@ -58,13 +62,13 @@ function getMachines(PDO $pdo, array $filters = [])
 
     // Filtre de recherche (hostname ou ip)
     if (!empty($filters['search'])) {
-        $sql .= ' AND (m.hostname LIKE ? OR m.ip LIKE ?)';
+        $sql .= ' AND (m.hostname LIKE ? OR (SELECT ipv4_address FROM network_adapters WHERE machine_id = m.id LIMIT 1) LIKE ?)';
         $params[] = '%' . $filters['search'] . '%';
         $params[] = '%' . $filters['search'] . '%';
     }
     // Filtre par OS
     if (!empty($filters['os'])) {
-        $sql .= ' AND m.os LIKE ?';
+        $sql .= ' AND m.os_name LIKE ?';
         $params[] = '%' . $filters['os'] . '%';
     }
     // Filtre par Groupe
@@ -88,11 +92,12 @@ function getMachines(PDO $pdo, array $filters = [])
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Ajoute cette fonction pour dynamiser le menu déroulant des OS
+// Dynamisation du menu déroulant des OS
 function getDistinctOS(PDO $pdo) {
-    return $pdo->query('SELECT DISTINCT os FROM machines WHERE os IS NOT NULL AND os != "" ORDER BY os')->fetchAll(PDO::FETCH_COLUMN);
+    return $pdo->query('SELECT DISTINCT os_name FROM machines WHERE os_name IS NOT NULL AND os_name != "" ORDER BY os_name')->fetchAll(PDO::FETCH_COLUMN);
 }
-// ---------- Ajout pour les Groupes ----------
+
+// ---------- Groupes ----------
 function getGroupes(PDO $pdo)
 {
     $sql = 'SELECT g.id, g.name AS nom, COUNT(m.id) AS count
@@ -102,47 +107,6 @@ function getGroupes(PDO $pdo)
     return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// ---------- Ajout pour la liste des Utilisateurs ----------
-function getAllUsers(PDO $pdo)
-{
-    return $pdo->query('SELECT id, username, role_id FROM users ORDER BY username')->fetchAll(PDO::FETCH_ASSOC);
-}
-
-// ---------- Ajout pour le Détail d'une Machine ----------
-function getMachineById(PDO $pdo, int $id)
-{
-    $sql = 'SELECT m.*, g.name AS groupe, 
-                   (m.last_seen > NOW() - INTERVAL 10 MINUTE) AS en_ligne
-            FROM machines m
-            LEFT JOIN machine_groups g ON g.id = m.group_id
-            WHERE m.id = ?';
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$id]);
-    return $stmt->fetch(PDO::FETCH_ASSOC);
-}
-
-// ---------- Fiche machine : disques ----------
-function getDisksByMachine(PDO $pdo, int $machineId)
-{
-    $stmt = $pdo->prepare('SELECT device, size_gb FROM disks WHERE machine_id = ? ORDER BY device');
-    $stmt->execute([$machineId]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-// ---------- Dashboard ----------
-function getOsDistribution(PDO $pdo)
-{
-    return $pdo->query("SELECT COALESCE(os, 'Inconnu') AS os, COUNT(*) AS nb FROM machines GROUP BY os ORDER BY nb DESC")->fetchAll(PDO::FETCH_ASSOC);
-}
-
-function getLatestMachines(PDO $pdo, int $limit = 5)
-{
-    $limit = max(1, $limit);
-    return $pdo->query("SELECT id, hostname, os, ram_mb FROM machines ORDER BY created_at DESC, id DESC LIMIT $limit")->fetchAll(PDO::FETCH_ASSOC);
-}
-
-// ---------- Groupes : renommer / supprimer ----------
-// Retourne false si le nom existe déjà
 function renameGroupe(PDO $pdo, int $id, string $nom)
 {
     try {
@@ -159,6 +123,56 @@ function renameGroupe(PDO $pdo, int $id, string $nom)
 
 function deleteGroupe(PDO $pdo, int $id)
 {
-    $stmt = $pdo->prepare('DELETE FROM machine_groups WHERE id = ?');   // machines.group_id passe à NULL (ON DELETE SET NULL)
+    $stmt = $pdo->prepare('DELETE FROM machine_groups WHERE id = ?');
     $stmt->execute([$id]);
+}
+
+// ---------- Utilisateurs ----------
+function getAllUsers(PDO $pdo)
+{
+    return $pdo->query('SELECT id, username, role_id FROM users ORDER BY username')->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ---------- Fiche Machine ----------
+function getMachineById(PDO $pdo, int $id)
+{
+    $sql = 'SELECT m.*, m.os_name AS os, m.cpu_name AS cpu, (m.ram_total_gb * 1024) AS ram_mb,
+                   g.name AS groupe, 
+                   (SELECT ipv4_address FROM network_adapters WHERE machine_id = m.id LIMIT 1) AS ip,
+                   (m.last_seen > NOW() - INTERVAL 10 MINUTE) AS en_ligne
+            FROM machines m
+            LEFT JOIN machine_groups g ON g.id = m.group_id
+            WHERE m.id = ?';
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$id]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+// ---------- Disques ----------
+function getDisksByMachine(PDO $pdo, int $machineId)
+{
+    // Adaptation à la BDD : device_id -> device, total_gb -> size_gb
+    $stmt = $pdo->prepare('SELECT device_id AS device, total_gb AS size_gb FROM disks WHERE machine_id = ? ORDER BY device_id');
+    $stmt->execute([$machineId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ---------- Dashboard ----------
+function getOsDistribution(PDO $pdo)
+{
+    return $pdo->query("SELECT COALESCE(os_name, 'Inconnu') AS os, COUNT(*) AS nb FROM machines GROUP BY os_name ORDER BY nb DESC")->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function getLatestMachines(PDO $pdo, int $limit = 5)
+{
+    $limit = max(1, $limit);
+    return $pdo->query("SELECT id, hostname, os_name AS os, (ram_total_gb * 1024) AS ram_mb FROM machines ORDER BY created_at DESC, id DESC LIMIT $limit")->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ---------- Fiche Machine : Modules RAM ----------
+function getRamModulesByMachine(PDO $pdo, int $machineId)
+{
+    $stmt = $pdo->prepare('SELECT slot, capacity_gb, speed_mhz, manufacturer FROM ram_modules WHERE machine_id = ? ORDER BY slot');
+    $stmt->execute([$machineId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
