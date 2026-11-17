@@ -1,12 +1,24 @@
 <?php
 
-$config = require __DIR__ . '/config.php';
+// ---------- Configuration BDD ----------
+$configFile = __DIR__ . '/../config.ini';
+
+if (!is_readable($configFile)) {
+    die('Fichier config.ini introuvable.');
+}
+
+$ini = parse_ini_file($configFile, true, INI_SCANNER_TYPED);
+$config = $ini['database'] ?? null;
+
+if (!$config) {
+    die('Configuration BDD invalide.');
+}
 
 try {
     $pdo = new PDO(
         "mysql:host={$config['host']};port={$config['port']};dbname={$config['dbname']};charset=utf8mb4",
         $config['user'],
-        $config['pass'],
+        $config['password'],
         [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_TIMEOUT            => 5,
@@ -14,7 +26,9 @@ try {
         ]
     );
 } catch (PDOException $e) {
-    die('Connexion à la base de données impossible.');
+    // Décommente la ligne suivante le temps du debug pour voir la vraie erreur :
+    die('Erreur BDD : ' . $e->getMessage());
+    //die('Connexion à la base de données impossible.');
 }
 
 // ---------- Utilisateurs ----------
