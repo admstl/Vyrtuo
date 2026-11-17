@@ -1,9 +1,6 @@
 <?php
-session_start();
-require __DIR__ . '/../model/db.php';
-
 if (isset($_SESSION['user'])) {
-    header('Location: ../index.php');
+    header('Location: index.php?page=machines');
     exit;
 }
 
