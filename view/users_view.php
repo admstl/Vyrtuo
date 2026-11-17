@@ -68,7 +68,7 @@ require __DIR__ . '/layout/header.php';
             <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-8 sticky top-8">
                 <h3 class="text-sm font-bold uppercase tracking-wider mb-6">Ajouter un utilisateur</h3>
 
-                <form method="post" action="add_user.php">
+                <form method="post" action="index.php?page=add_user">
                     <label class="block text-xs font-bold mb-2 uppercase tracking-wide px-1 text-gray-500">Identifiant</label>
                     <input type="text" name="username" class="w-full border border-gray-300 px-4 py-3 mb-4 focus:border-black focus:outline-none transition-colors rounded-2xl bg-gray-50" required>
 
@@ -100,7 +100,7 @@ require __DIR__ . '/layout/header.php';
         <h3 class="text-lg font-bold mb-2 tracking-tight">Modifier l'utilisateur</h3>
         <p id="edit-username-display" class="text-gray-500 text-sm mb-6 font-medium"></p>
         
-        <form method="post" action="update_user.php">
+        <form method="post" action="index.php?page=update_user">
             <input type="hidden" name="user_id" id="edit-user-id" value="">
             
             <label class="block text-xs font-bold mb-2 uppercase tracking-wide px-1 text-gray-500">Nouveau rôle</label>
@@ -127,7 +127,7 @@ require __DIR__ . '/layout/header.php';
         <h3 class="text-xl font-bold mb-2 text-red-600 tracking-tight">Supprimer l'utilisateur</h3>
         <p class="text-gray-500 text-sm mb-8 font-medium">Êtes-vous sûr de vouloir supprimer le compte <strong id="delete-username-display" class="text-black"></strong> ?</p>
         
-        <form method="post" action="delete_user.php">
+        <form method="post" action="index.php?page=delete_user">
             <input type="hidden" name="user_id" id="delete-user-id" value="">
             
             <div class="flex gap-3 justify-center">

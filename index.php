@@ -3,7 +3,9 @@ session_start();
 require_once __DIR__ . '/model/db.php';
 
 // Pages accessibles uniquement aux administrateurs (ADM)
-$admin_pages = ['groupes', 'utilisateurs', 'add_user', 'update_user', 'delete_user', 'add_groupe'];
+$admin_pages = ['groupes', 'add_groupe', 'update_groupe', 'delete_groupe',
+                'utilisateurs', 'add_user', 'update_user', 'delete_user',
+                'delete_machine', 'update_machine_group', 'export_csv'];
 
 // Pages accessibles à tous les utilisateurs connectés
 $user_pages = ['machines', 'dashboard', 'profil', 'machine_detail', 'update_password'];

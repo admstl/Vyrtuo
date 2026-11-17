@@ -13,7 +13,7 @@ require __DIR__ . '/layout/header.php';
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
             <div class="text-sm text-gray-500 font-medium mb-1">
-                <a href="../controller/machines.php" class="hover:text-black transition-colors">Machines</a>
+                <a href="index.php?page=machines" class="hover:text-black transition-colors">Machines</a>
                 <span class="mx-2">></span> <?= htmlspecialchars($machine['hostname']) ?>
             </div>
             <h1 class="text-3xl font-bold flex items-center gap-3">
@@ -58,14 +58,15 @@ require __DIR__ . '/layout/header.php';
         <div class="p-8 bg-white border border-gray-200 rounded-2xl shadow-sm">
             <h3 class="text-sm font-bold uppercase tracking-wider mb-6">Disques</h3>
             <div class="space-y-3">
-                <div class="flex justify-between items-center p-4 bg-gray-50 rounded-2xl">
-                    <span class="font-bold text-sm">/dev/sda1</span>
-                    <span class="text-gray-500 text-sm font-medium">256 Go</span>
-                </div>
-                <div class="flex justify-between items-center p-4 bg-gray-50 rounded-2xl">
-                    <span class="font-bold text-sm">/dev/sdb1</span>
-                    <span class="text-gray-500 text-sm font-medium">1 To</span>
-                </div>
+                <?php if (empty($disks)): ?>
+                    <p class="text-gray-400 text-sm">Aucun disque enregistré.</p>
+                <?php endif; ?>
+                <?php foreach ($disks as $d): ?>
+                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-2xl">
+                        <span class="font-bold text-sm"><?= htmlspecialchars($d['device']) ?></span>
+                        <span class="text-gray-500 text-sm font-medium"><?= ((float)$d['size_gb'] >= 1000) ? round($d['size_gb'] / 1000, 1) . ' To' : round($d['size_gb']) . ' Go' ?></span>
+                    </div>
+                <?php endforeach; ?>
             </div>
         </div>
 
@@ -83,7 +84,7 @@ require __DIR__ . '/layout/header.php';
                     <tbody class="divide-y divide-gray-50">
                         <tr class="hover:bg-gray-50 transition-colors">
                             <td class="py-4 px-4 font-medium"><?= htmlspecialchars($machine['ip']) ?></td>
-                            <td class="py-4 px-4 text-gray-500 font-mono text-xs">AA:BB:CC:DD:EE:FF</td>
+                            <td class="py-4 px-4 text-gray-500 font-mono text-xs"><?= htmlspecialchars($machine['mac'] ?? '') ?></td>
                         </tr>
                     </tbody>
                 </table>
@@ -107,6 +108,7 @@ require __DIR__ . '/layout/header.php';
             <label class="block text-xs font-bold mb-2 uppercase tracking-wide px-1 text-gray-500">Nouveau groupe</label>
             <!-- Ici tu pourras faire une boucle PHP foreach pour lister tes groupes dynamiquement -->
             <select name="group_id" class="w-full border border-gray-300 px-4 py-3 mb-8 focus:border-black focus:outline-none transition-colors rounded-2xl bg-gray-50 cursor-pointer">
+                <option value="0">Aucun groupe</option>
                 <!-- Boucle PHP pour générer les options à partir de la BDD -->
                 <?php
                 // On appelle tous les groupes (la fonction getGroupes doit être dans db.php)

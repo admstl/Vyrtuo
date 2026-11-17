@@ -1,5 +1,5 @@
 <?php
-
+// session_start() et require db.php sont DÉJÀ gérés par index.php
 $user = $_SESSION['user'];
-// Pas besoin d'appel BDD majeur ici, les infos sont dans la session
 
+require __DIR__ . '/../view/profil_view.php';

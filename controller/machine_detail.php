@@ -12,6 +12,8 @@ if (!$machine) {
     exit;
 }
 
+$disks = getDisksByMachine($pdo, (int)$id);
+
 // Configuration pour le header
 $page_title = 'VYRTUO - Détail de la machine';
 $active_page = 'machines';

@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($user_id > 0) {
         // Empêcher l'admin de se modifier lui-même (facultatif mais recommandé pour éviter de se bloquer)
-        if ($user_id === $_SESSION['user']['id']) {
+        if ($user_id === (int)$_SESSION['user']['id']) {
             $_SESSION['error'] = "Vous ne pouvez pas modifier votre propre rôle ici. Allez dans Mon Profil.";
         } else {
             try {

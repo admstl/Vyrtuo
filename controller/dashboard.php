@@ -9,6 +9,9 @@ $total = count($machines);
 $enLigne = count(array_filter($machines, fn($m) => $m['en_ligne']));
 $horsLigne = $total - $enLigne;
 
+$osStats        = getOsDistribution($pdo);
+$recentMachines = getLatestMachines($pdo, 5);
+
 $page_title = 'VYRTUO - Dashboard';
 $active_page = 'dashboard';
 

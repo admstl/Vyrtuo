@@ -107,3 +107,44 @@ function getMachineById(PDO $pdo, int $id)
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
+// ---------- Fiche machine : disques ----------
+function getDisksByMachine(PDO $pdo, int $machineId)
+{
+    $stmt = $pdo->prepare('SELECT device, size_gb FROM disks WHERE machine_id = ? ORDER BY device');
+    $stmt->execute([$machineId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ---------- Dashboard ----------
+function getOsDistribution(PDO $pdo)
+{
+    return $pdo->query("SELECT COALESCE(os, 'Inconnu') AS os, COUNT(*) AS nb FROM machines GROUP BY os ORDER BY nb DESC")->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function getLatestMachines(PDO $pdo, int $limit = 5)
+{
+    $limit = max(1, $limit);
+    return $pdo->query("SELECT id, hostname, os, ram_mb FROM machines ORDER BY created_at DESC, id DESC LIMIT $limit")->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ---------- Groupes : renommer / supprimer ----------
+// Retourne false si le nom existe déjà
+function renameGroupe(PDO $pdo, int $id, string $nom)
+{
+    try {
+        $stmt = $pdo->prepare('UPDATE machine_groups SET name = ? WHERE id = ?');
+        $stmt->execute([$nom, $id]);
+        return true;
+    } catch (PDOException $e) {
+        if ($e->getCode() === '23000') {
+            return false;
+        }
+        throw $e;
+    }
+}
+
+function deleteGroupe(PDO $pdo, int $id)
+{
+    $stmt = $pdo->prepare('DELETE FROM machine_groups WHERE id = ?');   // machines.group_id passe à NULL (ON DELETE SET NULL)
+    $stmt->execute([$id]);
+}

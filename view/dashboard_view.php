@@ -29,8 +29,9 @@ require __DIR__ . '/layout/header.php';
             <h3 class="text-sm font-bold uppercase tracking-wider mb-6">Répartition par OS</h3>
             <div class="space-y-4">
                 <?php
-                $os_stats = ['Ubuntu 22.04' => 45, 'Debian 12' => 30, 'Windows 11' => 15]; // Exemple de données
-                foreach ($os_stats as $os => $percent):
+                foreach ($osStats as $row):
+                    $os = $row['os'];
+                    $percent = $total > 0 ? round($row['nb'] / $total * 100) : 0;
                 ?>
                     <div>
                         <div class="flex justify-between text-xs font-bold text-gray-600 mb-1">
@@ -59,7 +60,7 @@ require __DIR__ . '/layout/header.php';
                     </thead>
                     <tbody class="divide-y divide-gray-50">
                         <?php
-                        $recent_machines = []; // À remplacer par tes données depuis le controller
+                        $recent_machines = $recentMachines ?? [];
                         foreach ($recent_machines as $m): ?>
                             <tr class="hover:bg-gray-50 transition-colors">
                                 <td class="py-3 px-2 font-bold"><?= htmlspecialchars($m['hostname']) ?></td>

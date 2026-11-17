@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'username' => $user['username'],
             'role'     => $user['role_id'],   // ADM ou USR
         ];
-        header('Location: ../index.php');
+        header('Location: index.php?page=machines');
         exit;
     }
 

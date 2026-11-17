@@ -19,7 +19,7 @@ require __DIR__ . '/layout/header.php';
         </div>
         <?php if ($user['role'] === 'ADM'): ?>
             <!-- Le bouton d'export passe les filtres actuels via http_build_query -->
-            <a href="controller/export_csv.php?<?= http_build_query($_GET) ?>" class="px-5 py-2.5 bg-gray-500 text-white font-bold text-xs uppercase tracking-wider rounded-2xl hover:bg-gray-600 transition-colors shadow-sm flex items-center gap-2">
+            <a href="index.php?<?= http_build_query(array_merge($_GET, ['page' => 'export_csv'])) ?>" class="px-5 py-2.5 bg-gray-500 text-white font-bold text-xs uppercase tracking-wider rounded-2xl hover:bg-gray-600 transition-colors shadow-sm flex items-center gap-2">
                 Exporter CSV
             </a>
         <?php endif; ?>
@@ -49,7 +49,7 @@ require __DIR__ . '/layout/header.php';
             <select name="groupe" onchange="this.form.submit()" class="border border-gray-300 px-4 py-3 focus:border-black focus:outline-none transition-colors rounded-2xl bg-white text-sm shadow-sm appearance-none cursor-pointer pr-10 min-w-[140px]">
                 <option value="">Groupe : tous</option>
                 <?php foreach($allGroups as $g): ?>
-                    <option value="<?= $g['id'] ?>" <?= (int)$filters['groupe'] === $g['id'] ? 'selected' : '' ?>>
+                    <option value="<?= $g['id'] ?>" <?= (int)$filters['groupe'] === (int)$g['id'] ? 'selected' : '' ?>>
                         <?= htmlspecialchars($g['nom']) ?>
                     </option>
                 <?php endforeach; ?>

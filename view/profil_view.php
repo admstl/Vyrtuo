@@ -39,10 +39,7 @@ require __DIR__ . '/layout/header.php';
                             <?= $user['role'] === 'ADM' ? 'Administrateur (ADM)' : 'Utilisateur (USR)' ?>
                         </span>
                     </li>
-                    <li class="flex flex-col mt-4">
-                        <span class="text-gray-400 text-xs font-bold uppercase">Dernière connexion</span>
-                        <span class="font-medium mt-1">10/11/2026 09:14</span> <!-- À dynamiser via la BDD -->
-                    </li>
+                    
                 </ul>
             </div>
         </div>
@@ -52,7 +49,7 @@ require __DIR__ . '/layout/header.php';
             <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-8">
                 <h3 class="text-sm font-bold uppercase tracking-wider mb-6">Changer mon mot de passe</h3>
 
-                <form method="post" action="update_password.php" class="max-w-md">
+                <form method="post" action="index.php?page=update_password" class="max-w-md">
                     <label class="block text-xs font-bold mb-2 uppercase tracking-wide px-1 text-gray-500">Mot de passe actuel</label>
                     <input type="password" name="current_password" class="w-full border border-gray-300 px-4 py-3 mb-6 focus:border-black focus:outline-none transition-colors rounded-2xl bg-gray-50" required>
 

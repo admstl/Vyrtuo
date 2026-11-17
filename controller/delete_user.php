@@ -5,7 +5,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($user_id > 0) {
         // Empêcher l'admin de se supprimer lui-même
-        if ($user_id === $_SESSION['user']['id']) {
+        if ($user_id === (int)$_SESSION['user']['id']) {
             $_SESSION['error'] = "Vous ne pouvez pas supprimer votre propre compte en cours d'utilisation.";
         } else {
             try {
