@@ -26,7 +26,7 @@ try {
         ]
     );
 } catch (PDOException $e) {
-    die('Erreur BDD : ' . $e->getMessage());
+    die('Connexion à la base de données impossible.');   // on n'affiche jamais le détail de l'erreur (host, user...)
 }
 
 // ---------- Utilisateurs ----------
@@ -53,7 +53,7 @@ function getMachines(PDO $pdo, array $filters = [])
     // - Récupération de la première adresse IP depuis network_adapters
     $sql = 'SELECT m.id, m.hostname, m.os_name AS os, m.cpu_name AS cpu, (m.ram_total_gb * 1024) AS ram_mb,
                    g.name AS groupe,
-                   (SELECT ipv4_address FROM network_adapters WHERE machine_id = m.id LIMIT 1) AS ip,
+                   (SELECT ipv4_address FROM network_adapters WHERE machine_id = m.id AND CHAR_LENGTH(ipv4_address) > 0 ORDER BY id LIMIT 1) AS ip,
                    (m.last_seen > NOW() - INTERVAL 10 MINUTE) AS en_ligne
             FROM machines m
             LEFT JOIN machine_groups g ON g.id = m.group_id
@@ -62,7 +62,7 @@ function getMachines(PDO $pdo, array $filters = [])
 
     // Filtre de recherche (hostname ou ip)
     if (!empty($filters['search'])) {
-        $sql .= ' AND (m.hostname LIKE ? OR (SELECT ipv4_address FROM network_adapters WHERE machine_id = m.id LIMIT 1) LIKE ?)';
+        $sql .= ' AND (m.hostname LIKE ? OR (SELECT ipv4_address FROM network_adapters WHERE machine_id = m.id AND CHAR_LENGTH(ipv4_address) > 0 ORDER BY id LIMIT 1) LIKE ?)';
         $params[] = '%' . $filters['search'] . '%';
         $params[] = '%' . $filters['search'] . '%';
     }
@@ -136,12 +136,10 @@ function getAllUsers(PDO $pdo)
 // ---------- Fiche Machine ----------
 function getMachineById(PDO $pdo, int $id)
 {
-    $sql = 'SELECT m.*, m.os_name AS os, m.cpu_name AS cpu, (m.ram_total_gb * 1024) AS ram_mb,
-                   g.name AS groupe, 
-                   (SELECT ipv4_address FROM network_adapters WHERE machine_id = m.id LIMIT 1) AS ip,
+    // V0 : la fiche ne dépend pas des groupes (pas de jointure sur group_id)
+    $sql = 'SELECT m.*, m.os_name AS os, m.cpu_name AS cpu,
                    (m.last_seen > NOW() - INTERVAL 10 MINUTE) AS en_ligne
             FROM machines m
-            LEFT JOIN machine_groups g ON g.id = m.group_id
             WHERE m.id = ?';
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$id]);
@@ -151,8 +149,7 @@ function getMachineById(PDO $pdo, int $id)
 // ---------- Disques ----------
 function getDisksByMachine(PDO $pdo, int $machineId)
 {
-    // Adaptation à la BDD : device_id -> device, total_gb -> size_gb
-    $stmt = $pdo->prepare('SELECT device_id AS device, total_gb AS size_gb FROM disks WHERE machine_id = ? ORDER BY device_id');
+    $stmt = $pdo->prepare('SELECT device_id AS device, model, filesystem, total_gb AS size_gb, free_gb FROM disks WHERE machine_id = ? ORDER BY device_id');
     $stmt->execute([$machineId]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -175,4 +172,34 @@ function getRamModulesByMachine(PDO $pdo, int $machineId)
     $stmt = $pdo->prepare('SELECT slot, capacity_gb, speed_mhz, manufacturer FROM ram_modules WHERE machine_id = ? ORDER BY slot');
     $stmt->execute([$machineId]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ---------- Fiche machine V0 : sélecteur, réseau, logiciels, rapport ----------
+// Liste légère (id + nom + statut) pour le menu « Machine : »
+function getMachineList(PDO $pdo)
+{
+    return $pdo->query('SELECT id, hostname, (last_seen > NOW() - INTERVAL 10 MINUTE) AS en_ligne FROM machines ORDER BY hostname')->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function getNetworkAdaptersByMachine(PDO $pdo, int $machineId)
+{
+    $stmt = $pdo->prepare('SELECT name, mac_address, ipv4_address, subnet_mask, default_gateway, dhcp_enabled
+                           FROM network_adapters WHERE machine_id = ? ORDER BY id');
+    $stmt->execute([$machineId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function getSoftwareByMachine(PDO $pdo, int $machineId)
+{
+    $stmt = $pdo->prepare('SELECT name, version, publisher, install_date FROM software WHERE machine_id = ? ORDER BY name');
+    $stmt->execute([$machineId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Dernier rapport reçu de la machine (date de collecte + version de l'agent)
+function getLastReport(PDO $pdo, int $machineId)
+{
+    $stmt = $pdo->prepare('SELECT collected_at, agent_version, received_at FROM reports WHERE machine_id = ? ORDER BY COALESCE(collected_at, received_at) DESC, id DESC LIMIT 1');
+    $stmt->execute([$machineId]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }

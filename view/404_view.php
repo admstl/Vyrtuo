@@ -14,7 +14,7 @@ require __DIR__ . '/layout/header.php';
         </p>
 
         <!-- Bouton de retour -->
-        <a href="index.php?page=machines" class="px-8 py-4 bg-black text-white font-bold text-xs uppercase tracking-wider rounded-2xl hover:bg-gray-800 transition-colors shadow-lg">
+        <a href="index.php" class="px-8 py-4 bg-black text-white font-bold text-xs uppercase tracking-wider rounded-2xl hover:bg-gray-800 transition-colors shadow-lg">
             Retourner à l'accueil
         </a>
     </div>

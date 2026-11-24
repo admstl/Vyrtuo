@@ -2,22 +2,27 @@
 session_start();
 require_once __DIR__ . '/model/db.php';
 
+// ===== V0 : l'application n'affiche que la fiche détaillée d'une machine =====
+// Les autres pages (liste, dashboard, groupes, utilisateurs, profil, export...) existent
+// toujours dans controller/ et view/, mais ne sont pas encore routées : on les ajoutera en V1.
+
 // Pages accessibles uniquement aux administrateurs (ADM)
-$admin_pages = ['groupes', 'add_groupe', 'update_groupe', 'delete_groupe',
-                'utilisateurs', 'add_user', 'update_user', 'delete_user',
-                'delete_machine', 'update_machine_group', 'export_csv'];
+$admin_pages = [
+    // V1 : 'groupes', 'add_groupe', 'update_groupe', 'delete_groupe',
+    //      'utilisateurs', 'add_user', 'update_user', 'delete_user',
+    //      'delete_machine', 'update_machine_group', 'export_csv'
+];
 
 // Pages accessibles à tous les utilisateurs connectés
-$user_pages = ['machines', 'dashboard', 'profil', 'machine_detail', 'update_password'];
+$user_pages = ['machine_detail'];   // V1 : 'machines', 'dashboard', 'profil', 'update_password'
 
-// On détermine quelle page l'utilisateur essaie de charger
-// Par défaut (s'il n'y a rien dans l'URL), on le met sur 'machines'
-$page = $_GET['page'] ?? 'machines';
+// Page par défaut = la fiche d'une machine
+$page = $_GET['page'] ?? 'machine_detail';
 
 // --- GESTION DE LA CONNEXION ---
 if ($page === 'login') {
     if (isset($_SESSION['user'])) {
-        header('Location: index.php?page=machines');
+        header('Location: index.php');
         exit;
     }
     require __DIR__ . '/controller/login.php';
@@ -29,8 +34,7 @@ if ($page === 'logout') {
     exit;
 }
 
-// Si l'utilisateur n'est pas connecté et essaie d'accéder à une autre page, 
-// on le force à se connecter.
+// Pas connecté : on force la connexion
 if (!isset($_SESSION['user'])) {
     header('Location: index.php?page=login');
     exit;
@@ -38,23 +42,12 @@ if (!isset($_SESSION['user'])) {
 
 $user = $_SESSION['user'];
 
-// --- GESTION DES DROITS (AUTORISATIONS) ---
-
-// 1. L'utilisateur (USR) essaie d'accéder à une page admin
-if (in_array($page, $admin_pages) && $user['role'] !== 'ADM') {
-    // Redirection vers une 404 (Accès refusé)
-    $page = '404';
-}
-// 2. La page demandée n'existe dans aucune de nos listes (URL bidon)
-elseif (!in_array($page, $admin_pages) && !in_array($page, $user_pages)) {
-    // Redirection vers une 404 (Introuvable)
-    $page = '404';
+// --- GESTION DES DROITS ---
+if (in_array($page, $admin_pages, true) && $user['role'] !== 'ADM') {
+    $page = '404';                                   // page admin demandée par un USR
+} elseif (!in_array($page, $admin_pages, true) && !in_array($page, $user_pages, true)) {
+    $page = '404';                                   // page inconnue
 }
 
-// --- CHARGEMENT DU BON CONTRÔLEUR ---
-if ($page === '404') {
-    require __DIR__ . '/controller/404.php';
-} else {
-    // On inclut le fichier qui correspond à la demande
-    require __DIR__ . '/controller/' . $page . '.php';
-}
+// --- CHARGEMENT DU CONTRÔLEUR ---
+require __DIR__ . '/controller/' . $page . '.php';
