@@ -43,17 +43,73 @@ require __DIR__ . '/layout/header.php';
         <?php endif; ?>
     </div>
 
+<?php
+// Petites aides d'affichage : valeur échappée ou tiret si vide
+$val = fn($x) => ($x === null || $x === '') ? '-' : htmlspecialchars((string)$x);
+$go  = fn($x) => ($x === null || $x === '') ? '-' : rtrim(rtrim(number_format((float)$x, 1, ',', ' '), '0'), ',') . ' Go';
+$dt  = fn($x) => $x ? date('d/m/Y H:i', strtotime($x)) : '-';
+?>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-<!-- Système & CPU -->
+
+        <!-- Identité -->
+        <div class="p-8 bg-white border border-gray-200 rounded-2xl shadow-sm">
+            <h3 class="text-sm font-bold uppercase tracking-wider mb-6">Identité</h3>
+            <ul class="space-y-4 text-sm">
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Fabricant / Modèle</span> <span class="font-medium mt-1"><?= $val(trim(($machine['manufacturer'] ?? '') . ' ' . ($machine['model'] ?? ''))) ?></span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Numéro de série</span> <span class="font-medium mt-1"><?= $val($machine['serial_number']) ?></span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">UUID</span> <span class="font-mono text-xs mt-1 break-all"><?= $val($machine['uuid']) ?></span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Domaine</span> <span class="font-medium mt-1"><?= $val($machine['domain']) ?></span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Utilisateur connecté</span> <span class="font-medium mt-1"><?= $val($machine['logged_user']) ?></span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Groupe</span> <span class="font-medium mt-1"><?= $val($machine['groupe']) ?></span></li>
+            </ul>
+        </div>
+
+        <!-- Système -->
         <div class="p-8 bg-white border border-gray-200 rounded-2xl shadow-sm">
             <h3 class="text-sm font-bold uppercase tracking-wider mb-6">Système</h3>
             <ul class="space-y-4 text-sm">
-                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">OS</span> <span class="font-medium mt-1"><?= htmlspecialchars($machine['os']) ?> <?= htmlspecialchars($machine['os_version'] ?? '') ?> (Build <?= htmlspecialchars($machine['os_build'] ?? '') ?>)</span></li>
-                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Architecture</span> <span class="font-medium mt-1"><?= htmlspecialchars($machine['architecture'] ?? '-') ?></span></li>
-                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">CPU</span> <span class="font-medium mt-1"><?= htmlspecialchars($machine['cpu']) ?> (<?= $machine['cpu_cores'] ?? '?' ?> coeurs)</span></li>
-                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">RAM totale</span> <span class="font-medium mt-1"><?= $machine['ram_mb'] ? round($machine['ram_mb'] / 1024) : 0 ?> Go</span></li>
-                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Dernier inventaire</span> <span class="font-medium mt-1"><?= $machine['last_seen'] ? date('d/m/Y H:i', strtotime($machine['last_seen'])) : '-' ?></span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">OS</span> <span class="font-medium mt-1"><?= $val($machine['os']) ?></span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Version / Build</span> <span class="font-medium mt-1"><?= $val($machine['os_version']) ?><?= $machine['os_build'] ? ' (build ' . htmlspecialchars($machine['os_build']) . ')' : '' ?></span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Architecture</span> <span class="font-medium mt-1"><?= $val($machine['architecture']) ?></span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Dernier démarrage</span> <span class="font-medium mt-1"><?= $dt($machine['last_boot']) ?></span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Dernier inventaire</span> <span class="font-medium mt-1"><?= $dt($machine['last_seen']) ?></span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Ajoutée au parc le</span> <span class="font-medium mt-1"><?= $dt($machine['created_at']) ?></span></li>
             </ul>
+        </div>
+
+        <!-- Processeur & carte mère -->
+        <div class="p-8 bg-white border border-gray-200 rounded-2xl shadow-sm">
+            <h3 class="text-sm font-bold uppercase tracking-wider mb-6">Processeur & carte mère</h3>
+            <ul class="space-y-4 text-sm">
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">CPU</span> <span class="font-medium mt-1"><?= $val($machine['cpu']) ?></span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Cœurs / Threads</span> <span class="font-medium mt-1"><?= $val($machine['cpu_cores']) ?> cœurs / <?= $val($cpuRep['logical_processors'] ?? null) ?> threads</span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Fréquence max</span> <span class="font-medium mt-1"><?= !empty($cpuRep['max_clock_mhz']) ? (int)$cpuRep['max_clock_mhz'] . ' MHz' : '-' ?></span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Carte mère</span> <span class="font-medium mt-1"><?= $val(trim(($board['manufacturer'] ?? '') . ' ' . ($board['product'] ?? ''))) ?></span></li>
+                <li class="flex flex-col"><span class="text-gray-400 text-xs font-bold uppercase">Version BIOS</span> <span class="font-medium mt-1"><?= $val($board['bios_version'] ?? null) ?></span></li>
+            </ul>
+        </div>
+
+        <!-- Mémoire vive -->
+        <div class="p-8 bg-white border border-gray-200 rounded-2xl shadow-sm">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-sm font-bold uppercase tracking-wider">Mémoire vive</h3>
+                <span class="text-xs font-bold bg-gray-100 px-3 py-1 rounded-full">Total : <?= $go($machine['ram_total_gb']) ?></span>
+            </div>
+            <div class="space-y-3">
+                <?php if (empty($ramModules)): ?>
+                    <p class="text-gray-400 text-sm">Aucune barrette détaillée (fréquent sur une machine virtuelle).</p>
+                <?php endif; ?>
+                <?php foreach ($ramModules as $r): ?>
+                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-2xl text-sm">
+                        <div>
+                            <span class="font-bold"><?= $val($r['slot']) ?></span>
+                            <span class="text-gray-500"> - <?= $go($r['capacity_gb']) ?></span>
+                            <div class="text-xs text-gray-400 mt-1">Fabricant : <?= $val($r['manufacturer']) ?></div>
+                        </div>
+                        <span class="text-xs font-mono text-gray-500"><?= $r['speed_mhz'] ? (int)$r['speed_mhz'] . ' MHz' : '-' ?></span>
+                    </div>
+                <?php endforeach; ?>
+            </div>
         </div>
 
         <!-- Disques -->
@@ -63,10 +119,48 @@ require __DIR__ . '/layout/header.php';
                 <?php if (empty($disks)): ?>
                     <p class="text-gray-400 text-sm">Aucun disque enregistré.</p>
                 <?php endif; ?>
-                <?php foreach ($disks as $d): ?>
-                    <div class="flex justify-between items-center p-4 bg-gray-50 rounded-2xl">
-                        <span class="font-bold text-sm"><?= htmlspecialchars($d['device']) ?></span>
-                        <span class="text-gray-500 text-sm font-medium"><?= ((float)$d['size_gb'] >= 1000) ? round($d['size_gb'] / 1000, 1) . ' To' : round($d['size_gb']) . ' Go' ?></span>
+                <?php foreach ($disks as $d):
+                    $total = (float)$d['size_gb'];
+                    $free  = $d['free_gb'] !== null ? (float)$d['free_gb'] : null;
+                    $pct   = ($total > 0 && $free !== null) ? (int)round(($total - $free) / $total * 100) : null;
+                    $color = $pct === null ? 'bg-gray-300' : ($pct >= 90 ? 'bg-red-500' : ($pct >= 75 ? 'bg-amber-500' : 'bg-green-500'));
+                ?>
+                    <div class="p-4 bg-gray-50 rounded-2xl text-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold"><?= $val($d['device']) ?></span>
+                            <span class="text-xs text-gray-500"><?= $val($d['filesystem']) ?></span>
+                        </div>
+                        <?php if (!empty($d['model'])): ?>
+                            <div class="text-xs text-gray-400 mt-1"><?= htmlspecialchars($d['model']) ?></div>
+                        <?php endif; ?>
+                        <?php if ($pct !== null): ?>
+                            <div class="w-full bg-gray-200 rounded-full h-2 mt-3">
+                                <div class="<?= $color ?> h-2 rounded-full" style="width: <?= max(0, min(100, $pct)) ?>%"></div>
+                            </div>
+                        <?php endif; ?>
+                        <div class="flex justify-between text-xs text-gray-500 mt-2">
+                            <span><?= $pct !== null ? 'Utilisé : ' . $pct . ' %' : '' ?></span>
+                            <span>Libre : <?= $go($free) ?> / <?= $go($total) ?></span>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- Carte graphique -->
+        <div class="p-8 bg-white border border-gray-200 rounded-2xl shadow-sm">
+            <h3 class="text-sm font-bold uppercase tracking-wider mb-6">Carte graphique</h3>
+            <div class="space-y-3">
+                <?php if (empty($gpus)): ?>
+                    <p class="text-gray-400 text-sm">Aucune carte graphique remontée.</p>
+                <?php endif; ?>
+                <?php foreach ($gpus as $g): ?>
+                    <div class="p-4 bg-gray-50 rounded-2xl text-sm">
+                        <div class="font-bold"><?= $val($g['name'] ?? null) ?></div>
+                        <div class="text-xs text-gray-400 mt-1">
+                            Mémoire : <?= !empty($g['vram_mb']) ? (int)$g['vram_mb'] . ' Mo' : '-' ?>
+                            &nbsp;•&nbsp; Pilote : <?= $val($g['driver_version'] ?? null) ?>
+                        </div>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -74,20 +168,69 @@ require __DIR__ . '/layout/header.php';
 
         <!-- Réseau -->
         <div class="p-8 bg-white border border-gray-200 rounded-2xl shadow-sm md:col-span-2">
-            <h3 class="text-sm font-bold uppercase tracking-wider mb-6">Interfaces Réseau</h3>
+            <h3 class="text-sm font-bold uppercase tracking-wider mb-6">Interfaces réseau (<?= count($networks) ?>)</h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead class="border-b border-gray-100">
                         <tr>
+                            <th class="pb-3 px-4 font-bold uppercase tracking-wider text-xs text-gray-400">Interface</th>
                             <th class="pb-3 px-4 font-bold uppercase tracking-wider text-xs text-gray-400">Adresse IP</th>
+                            <th class="pb-3 px-4 font-bold uppercase tracking-wider text-xs text-gray-400">Masque</th>
+                            <th class="pb-3 px-4 font-bold uppercase tracking-wider text-xs text-gray-400">Passerelle</th>
                             <th class="pb-3 px-4 font-bold uppercase tracking-wider text-xs text-gray-400">Adresse MAC</th>
+                            <th class="pb-3 px-4 font-bold uppercase tracking-wider text-xs text-gray-400">DHCP</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50">
-                        <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="py-4 px-4 font-medium"><?= htmlspecialchars($machine['ip']) ?></td>
-                            <td class="py-4 px-4 text-gray-500 font-mono text-xs"><?= htmlspecialchars($machine['mac'] ?? '') ?></td>
+                        <?php if (empty($networks)): ?>
+                            <tr><td colspan="6" class="py-4 px-4 text-gray-400">Aucune interface réseau enregistrée.</td></tr>
+                        <?php endif; ?>
+                        <?php foreach ($networks as $n): ?>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="py-4 px-4 font-medium"><?= $val($n['name']) ?></td>
+                                <td class="py-4 px-4 font-medium"><?= $val($n['ipv4_address']) ?></td>
+                                <td class="py-4 px-4 text-gray-500 font-mono text-xs"><?= $val($n['subnet_mask']) ?></td>
+                                <td class="py-4 px-4 text-gray-500 font-mono text-xs"><?= $val($n['default_gateway']) ?></td>
+                                <td class="py-4 px-4 text-gray-500 font-mono text-xs"><?= $val($n['mac_address']) ?></td>
+                                <td class="py-4 px-4 text-gray-500"><?= $n['dhcp_enabled'] === null ? '-' : ($n['dhcp_enabled'] ? 'Oui' : 'Non') ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Logiciels -->
+        <div class="p-8 bg-white border border-gray-200 rounded-2xl shadow-sm md:col-span-2">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
+                <h3 class="text-sm font-bold uppercase tracking-wider">Logiciels installés (<?= count($softwares) ?>)</h3>
+                <?php if (!empty($softwares)): ?>
+                    <input type="text" id="filtre-logiciels" placeholder="Filtrer un logiciel..." oninput="filtrerLogiciels(this.value)"
+                           class="border border-gray-300 px-4 py-2 focus:border-black focus:outline-none transition-colors rounded-2xl bg-white text-sm">
+                <?php endif; ?>
+            </div>
+            <div class="overflow-x-auto max-h-96 overflow-y-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="border-b border-gray-100 sticky top-0 bg-white">
+                        <tr>
+                            <th class="pb-3 px-4 font-bold uppercase tracking-wider text-xs text-gray-400">Nom</th>
+                            <th class="pb-3 px-4 font-bold uppercase tracking-wider text-xs text-gray-400">Version</th>
+                            <th class="pb-3 px-4 font-bold uppercase tracking-wider text-xs text-gray-400">Éditeur</th>
+                            <th class="pb-3 px-4 font-bold uppercase tracking-wider text-xs text-gray-400">Installé le</th>
                         </tr>
+                    </thead>
+                    <tbody id="liste-logiciels" class="divide-y divide-gray-50">
+                        <?php if (empty($softwares)): ?>
+                            <tr><td colspan="4" class="py-4 px-4 text-gray-400">Aucun logiciel enregistré.</td></tr>
+                        <?php endif; ?>
+                        <?php foreach ($softwares as $s): ?>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="py-3 px-4 font-medium"><?= $val($s['name']) ?></td>
+                                <td class="py-3 px-4 text-gray-500 font-mono text-xs"><?= $val($s['version']) ?></td>
+                                <td class="py-3 px-4 text-gray-500"><?= $val($s['publisher']) ?></td>
+                                <td class="py-3 px-4 text-gray-500"><?php $t = $s['install_date'] ? strtotime($s['install_date']) : false; ?><?= $t ? date('d/m/Y', $t) : $val($s['install_date']) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
@@ -164,6 +307,14 @@ require __DIR__ . '/layout/header.php';
 
     function closeModal(modalId) {
         document.getElementById(modalId).classList.add('hidden');
+    }
+
+    // Filtre la liste des logiciels pendant la frappe (nom, version ou éditeur)
+    function filtrerLogiciels(texte) {
+        const t = texte.toLowerCase();
+        document.querySelectorAll('#liste-logiciels tr').forEach(function (ligne) {
+            ligne.style.display = ligne.textContent.toLowerCase().includes(t) ? '' : 'none';
+        });
     }
 </script>
 

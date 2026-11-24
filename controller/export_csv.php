@@ -25,7 +25,7 @@ $output = fopen('php://output', 'w');
 // Force l'encodage UTF-8 pour Excel (BOM)
 fwrite($output, "\xEF\xBB\xBF");
 
-fputcsv($output, ['Hostname', 'IP', 'OS', 'CPU', 'RAM (Go)', 'Groupe', 'Statut'], ';', '"', '\\');
+fputcsv($output, ['Hostname', 'IP', 'OS', 'CPU', 'RAM (Go)', 'Groupe', 'Statut', 'Domaine', 'N° de série', 'Dernier inventaire'], ';', '"', '\\');
 
 foreach ($machines as $m) {
     $ram    = $m['ram_mb'] ? round($m['ram_mb'] / 1024) : '';
@@ -38,7 +38,10 @@ foreach ($machines as $m) {
         csvSafe($m['cpu']),
         $ram,
         csvSafe($m['groupe'] ?? 'Non assigné'),
-        $statut
+        $statut,
+        csvSafe($m['domain'] ?? ''),
+        csvSafe($m['serial_number'] ?? ''),
+        $m['last_seen'] ? date('d/m/Y H:i', strtotime($m['last_seen'])) : ''
     ], ';', '"', '\\');
 }
 

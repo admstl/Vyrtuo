@@ -44,6 +44,10 @@ function createUser(PDO $pdo, string $username, string $password, string $roleId
 }
 
 // ---------- Machines ----------
+// Une machine est "en ligne" si son dernier inventaire date de moins de ONLINE_MINUTES.
+// Le collecteur passe toutes les 30 min : on laisse 15 min de marge.
+const ONLINE_MINUTES = 45;
+
 function getMachines(PDO $pdo, array $filters = [])
 {
     // Adaptation à la BDD : 
@@ -52,9 +56,10 @@ function getMachines(PDO $pdo, array $filters = [])
     // - ram_total_gb multiplié par 1024 -> ram_mb
     // - Récupération de la première adresse IP depuis network_adapters
     $sql = 'SELECT m.id, m.hostname, m.os_name AS os, m.cpu_name AS cpu, (m.ram_total_gb * 1024) AS ram_mb,
+                   m.serial_number, m.domain, m.last_seen,
                    g.name AS groupe,
                    (SELECT ipv4_address FROM network_adapters WHERE machine_id = m.id LIMIT 1) AS ip,
-                   (m.last_seen > NOW() - INTERVAL 10 MINUTE) AS en_ligne
+                   (m.last_seen > NOW() - INTERVAL ' . ONLINE_MINUTES . ' MINUTE) AS en_ligne
             FROM machines m
             LEFT JOIN machine_groups g ON g.id = m.group_id
             WHERE 1=1';
@@ -79,9 +84,9 @@ function getMachines(PDO $pdo, array $filters = [])
     // Filtre par Statut
     if (!empty($filters['statut'])) {
         if ($filters['statut'] === 'online') {
-            $sql .= ' AND m.last_seen > NOW() - INTERVAL 10 MINUTE';
+            $sql .= ' AND m.last_seen > NOW() - INTERVAL ' . ONLINE_MINUTES . ' MINUTE';
         } elseif ($filters['statut'] === 'offline') {
-            $sql .= ' AND (m.last_seen <= NOW() - INTERVAL 10 MINUTE OR m.last_seen IS NULL)';
+            $sql .= ' AND (m.last_seen <= NOW() - INTERVAL ' . ONLINE_MINUTES . ' MINUTE OR m.last_seen IS NULL)';
         }
     }
 
@@ -139,7 +144,7 @@ function getMachineById(PDO $pdo, int $id)
     $sql = 'SELECT m.*, m.os_name AS os, m.cpu_name AS cpu, (m.ram_total_gb * 1024) AS ram_mb,
                    g.name AS groupe, 
                    (SELECT ipv4_address FROM network_adapters WHERE machine_id = m.id LIMIT 1) AS ip,
-                   (m.last_seen > NOW() - INTERVAL 10 MINUTE) AS en_ligne
+                   (m.last_seen > NOW() - INTERVAL ' . ONLINE_MINUTES . ' MINUTE) AS en_ligne
             FROM machines m
             LEFT JOIN machine_groups g ON g.id = m.group_id
             WHERE m.id = ?';
@@ -151,8 +156,9 @@ function getMachineById(PDO $pdo, int $id)
 // ---------- Disques ----------
 function getDisksByMachine(PDO $pdo, int $machineId)
 {
-    // Adaptation à la BDD : device_id -> device, total_gb -> size_gb
-    $stmt = $pdo->prepare('SELECT device_id AS device, total_gb AS size_gb FROM disks WHERE machine_id = ? ORDER BY device_id');
+    // device_id -> device, total_gb -> size_gb (noms attendus par la vue)
+    $stmt = $pdo->prepare('SELECT device_id AS device, model, filesystem, total_gb AS size_gb, free_gb
+                           FROM disks WHERE machine_id = ? ORDER BY device_id');
     $stmt->execute([$machineId]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -175,4 +181,38 @@ function getRamModulesByMachine(PDO $pdo, int $machineId)
     $stmt = $pdo->prepare('SELECT slot, capacity_gb, speed_mhz, manufacturer FROM ram_modules WHERE machine_id = ? ORDER BY slot');
     $stmt->execute([$machineId]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ---------- Fiche Machine : Cartes réseau ----------
+function getNetworkAdaptersByMachine(PDO $pdo, int $machineId)
+{
+    $stmt = $pdo->prepare('SELECT name, mac_address, ipv4_address, subnet_mask, default_gateway, dhcp_enabled
+                           FROM network_adapters WHERE machine_id = ? ORDER BY id');
+    $stmt->execute([$machineId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ---------- Fiche Machine : Logiciels ----------
+function getSoftwareByMachine(PDO $pdo, int $machineId)
+{
+    $stmt = $pdo->prepare('SELECT name, version, publisher, install_date
+                           FROM software WHERE machine_id = ? ORDER BY name');
+    $stmt->execute([$machineId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ---------- Fiche Machine : dernier rapport complet ----------
+// La table reports garde le JSON complet de chaque envoi. On y lit ce qui n'a pas
+// de colonne dédiée en base : carte mère, BIOS, threads et fréquence du CPU, GPU.
+function getLatestReportData(PDO $pdo, int $machineId)
+{
+    $stmt = $pdo->prepare('SELECT data_json FROM reports WHERE machine_id = ?
+                           ORDER BY received_at DESC, id DESC LIMIT 1');
+    $stmt->execute([$machineId]);
+    $json = $stmt->fetchColumn();
+    if ($json === false) {
+        return [];
+    }
+    $data = json_decode($json, true);
+    return is_array($data) ? $data : [];
 }
